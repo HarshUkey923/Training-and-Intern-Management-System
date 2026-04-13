@@ -2,105 +2,146 @@ import { useState } from "react";
 import authApi from "../services/authApi.js";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
-import Navbar from "../components/NavbarPre.jsx";
+import PageLayout from "../components/PageLayoutPre.jsx";
+import { FormCard, StyledInput, StyledSelect, PrimaryButton } from "../components/FormComponents.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [repassword, setRePassword] = useState("");
-  const [role, setRole] = useState("Intern");
-  
+  const text    = isDark ? "#f9fafb" : "#111827";
+  const subText = isDark ? "#9ca3af" : "#6b7280";
+
+  const [form, setForm] = useState({ name: "", email: "", password: "", repassword: "", role: "Intern" });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
   const HandleSubmit = async (e) => {
     e.preventDefault();
+    if (form.password !== form.repassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+    setLoading(true);
     try {
-      if(password !== repassword){
-        toast.error("Password do not match!");
-      }
-      else{
-      await authApi.post("/register", {name, email, password, role});
+      await authApi.post("/register", {
+        name:     form.name,
+        email:    form.email,
+        password: form.password,
+        role:     form.role,
+      });
       toast.success("Registration successful. Please login.");
       navigate("/");
-    }} catch (err) {
-      console.log(err)
-      toast.error("Registration failed");
+    } catch (err) {
+      console.log(err);
+      toast.error(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/30 via-base-200 to-secondary/30">
-      <Navbar/>
-    <div className="mx-auto p-5 max-w-3xl">
-      <form
-        onSubmit={HandleSubmit}
-        className="card glass border-2 shadow-xl p-8"
-      >
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          Register
-        </h2>
+    <PageLayout>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "70vh" }}>
+        <div style={{ width: "100%", maxWidth: "400px" }}>
 
-        <input
-          name="name"
-          placeholder="Full Name"
-          className="input input-bordered bg-base-100/30 backdrop-blur border border-base-300 mb-3"
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: "linear-gradient(135deg, #6366f1, #10b981)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <span style={{ color: "white", fontSize: "16px", fontWeight: 700 }}>T</span>
+            </div>
+            <h2 style={{ fontSize: "22px", fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.01em" }}>
+              Create an account
+            </h2>
+            <p style={{ fontSize: "13px", color: subText, marginTop: "6px" }}>
+              Join TIMS to get started
+            </p>
+          </div>
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="input input-bordered bg-base-100/30 backdrop-blur border border-base-300 mb-3"
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+          <FormCard>
+            <form onSubmit={HandleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="input input-bordered bg-base-100/30 backdrop-blur border border-base-300 mb-3"
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+              <StyledInput
+                label="Full Name"
+                name="name"
+                placeholder="e.g. Rahul Sharma"
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
 
-        <input
-          name="repassword"
-          type="password"
-          placeholder="Repeat Password"
-          className="input input-bordered bg-base-100/30 backdrop-blur border border-base-300 mb-3"
-          onChange={(e) => setRePassword(e.target.value)}
-          required
-        />
+              <StyledInput
+                label="Email Address"
+                name="email"
+                type="email"
+                placeholder="rahul@example.com"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
 
-        <select
-          name="role"
-          className="select select-bordered bg-base-100/30 backdrop-blur border border-base-300 mb-4"
-          onChange={(e) => setRole(e.target.value)}>
-          <option value="Intern">INTERN</option>
-          <option value="Mentor">MENTOR</option>
-          <option value="HR">HR</option>
-        </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <StyledInput
+                  label="Password"
+                  name="password"
+                  type="password"
+                  placeholder="Min. 8 characters"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                />
+                <StyledInput
+                  label="Confirm Password"
+                  name="repassword"
+                  type="password"
+                  placeholder="Repeat password"
+                  value={form.repassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-        <button className="btn bg-base-200/40 backdrop-blur-xl w-full">
-          Register
-        </button>
+              {/* Password match indicator */}
+              {form.repassword && (
+                <p style={{ fontSize: "11px", marginTop: "-6px", color: form.password === form.repassword ? "#34d399" : "#f87171" }}>
+                  {form.password === form.repassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                </p>
+              )}
 
-        <p className="text-center mt-4 text-sm">
-          Already have an account?{" "}
-          <span
-            className="link link-primary"
-            onClick={() => navigate("/")}
-          >
-            Login
-          </span>
-        </p>
-      </form>
-    </div>
-    </div>
+              <StyledSelect
+                label="Role"
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+              >
+                <option value="Intern">Intern</option>
+                <option value="Mentor">Mentor</option>
+                <option value="HR">HR</option>
+              </StyledSelect>
+
+              <div style={{ marginTop: "4px" }}>
+                <PrimaryButton type="submit" loading={loading}>
+                  Create Account
+                </PrimaryButton>
+              </div>
+
+            </form>
+          </FormCard>
+
+          <p style={{ textAlign: "center", fontSize: "12px", color: subText, marginTop: "16px" }}>
+            Already have an account?{" "}
+            <span
+              onClick={() => navigate("/")}
+              style={{ color: "#6366f1", fontWeight: 500, cursor: "pointer" }}
+            >
+              Login
+            </span>
+          </p>
+
+        </div>
+      </div>
+    </PageLayout>
   );
 };
 
