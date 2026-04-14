@@ -11,6 +11,7 @@ import AddIntern from "./pages/hr/AddIntern";
 import Details from "./pages/hr/Details";
 import AddMentor from "./pages/hr/AddMentor";
 import AssignTask from "./pages/mentor/AssignTask";
+import DisplayTasks from "./pages/mentor/DisplayTasks";
 
 function App() {
   const role = localStorage.getItem("role");
@@ -71,7 +72,15 @@ function App() {
             <ProtectedRoute allowedRoles={["Mentor"]}>
               <AssignTask />
             </ProtectedRoute>
-          }/>      
+          }/>
+
+          <Route
+            path="/show-tasks"
+            element={
+              <ProtectedRoute allowedRoles={["Mentor"]}>
+                <DisplayTasks/>
+              </ProtectedRoute>
+            }/>
         </Routes>
     </BrowserRouter>
   );

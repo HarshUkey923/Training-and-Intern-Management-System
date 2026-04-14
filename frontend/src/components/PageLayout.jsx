@@ -24,7 +24,12 @@ const themes = {
   },
 };
 
-const PageLayout = ({ children, backPath = "/hr", backLabel = "Back to Dashboard", maxWidth = "680px" }) => {
+const PageLayout = ({
+  children,
+  backPath  = null,       // null = no back button (use for dashboards)
+  backLabel = "Back",
+  maxWidth  = "1280px",  // wide default suits dashboards; pass "680px" for forms
+}) => {
   const { isDark } = useTheme();
   const t = isDark ? themes.dark : themes.light;
   const navigate = useNavigate();
@@ -35,21 +40,24 @@ const PageLayout = ({ children, backPath = "/hr", backLabel = "Back to Dashboard
       <div style={{ height: "2px", background: "linear-gradient(90deg, #6366f1, #10b981, #f59e0b)", flexShrink: 0 }} />
 
       <main style={{ flex: 1, width: "100%", maxWidth, margin: "0 auto", padding: "clamp(16px, 4vw, 32px) clamp(16px, 4vw, 24px)" }}>
-        {/* Back button */}
-        <button
-          onClick={() => navigate(backPath)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            padding: "7px 14px", borderRadius: "8px", marginBottom: "24px",
-            fontSize: "13px", fontWeight: 500, cursor: "pointer",
-            background: t.backBtn, border: `1px solid ${t.backBtnBorder}`,
-            color: t.backBtnText, transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = t.text; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = t.backBtnText; }}
-        >
-          <ArrowLeftIcon size={14} /> {backLabel}
-        </button>
+
+        {/* Back button — only rendered when backPath is a non-null string */}
+        {backPath && (
+          <button
+            onClick={() => navigate(backPath)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "7px 14px", borderRadius: "8px", marginBottom: "24px",
+              fontSize: "13px", fontWeight: 500, cursor: "pointer",
+              background: t.backBtn, border: `1px solid ${t.backBtnBorder}`,
+              color: t.backBtnText, transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = t.text; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = t.backBtnText; }}
+          >
+            <ArrowLeftIcon size={14} /> {backLabel}
+          </button>
+        )}
 
         {children}
       </main>

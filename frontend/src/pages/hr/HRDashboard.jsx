@@ -172,7 +172,7 @@ const HRDashboard = () => {
 
       <footer style={{ borderTop: `1px solid ${t.footerBorder}`, padding: "12px 24px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: "11px", fontWeight: 600, color: t.textMuted }}>AetherByte IT Solutions</span>
-        <span style={{ fontSize: "11px", color: t.textMuted, opacity: 0.5 }}>TIMS v1.0</span>
+        <span style={{ fontSize: "11px", color: t.textMuted, opacity: 0.5 }}>TIMS</span>
       </footer>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>

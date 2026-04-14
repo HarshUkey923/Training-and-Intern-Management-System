@@ -65,7 +65,7 @@ const Register = () => {
               <StyledInput
                 label="Full Name"
                 name="name"
-                placeholder="e.g. Rahul Sharma"
+                placeholder="e.g. Edward Newgate"
                 value={form.name}
                 onChange={handleChange}
                 required
@@ -75,7 +75,7 @@ const Register = () => {
                 label="Email Address"
                 name="email"
                 type="email"
-                placeholder="rahul@example.com"
+                placeholder="edward@example.com"
                 value={form.email}
                 onChange={handleChange}
                 required

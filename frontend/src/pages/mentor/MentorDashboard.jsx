@@ -6,6 +6,7 @@ import PageLayout from "../../components/PageLayout.jsx";
 import {
   UsersIcon, LayoutGridIcon, ClipboardListIcon,
   ChevronDownIcon, ChevronUpIcon, ClockIcon, UserIcon,
+  PlusIcon,
 } from "lucide-react";
 
 const themes = {
@@ -35,16 +36,40 @@ const MentorDashboard = () => {
       .then((res) => setPrograms(res.data))
       .catch(console.log)
       .finally(() => setLoading(false));
-      console.log(setPrograms)
   }, []);
 
   const totalInterns = programs.reduce((acc, p) => acc + (p.interns?.length || 0), 0);
+
+  const quickActions = [
+    { label: "Assigned Tasks", path: "/show-tasks",    accent: "#6366f1" },
+  ];
 
   const stats = [
     { label: "Assigned Programs", value: programs.length, icon: LayoutGridIcon,    accent: "#6366f1", bg: "rgba(99,102,241,0.1)" },
     { label: "Total Interns",     value: totalInterns,     icon: UsersIcon,         accent: "#10b981", bg: "rgba(16,185,129,0.1)" },
     { label: "Active Tasks",      value: "—",              icon: ClipboardListIcon, accent: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
   ];
+
+  const ActionButton = ({ label, accent, t, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: "6px",
+        padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 500,
+        background: hovered ? `${accent}18` : t.btnGhost,
+        border: `1px solid ${hovered ? `${accent}50` : t.btnGhostBorder}`,
+        color: hovered ? accent : t.btnGhostText,
+        cursor: "pointer", transition: "all 0.15s",
+      }}
+    >
+      <PlusIcon size={13} />{label}
+    </button>
+  );
+};
 
   return (
     <PageLayout backPath={null}>
@@ -56,7 +81,13 @@ const MentorDashboard = () => {
           Mentor Dashboard
         </h1>
         <p style={{ fontSize: "13px", color: t.textMuted, marginTop: "4px" }}>Your assigned programs and interns.</p>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {quickActions.map((a) => (
+              <ActionButton key={a.label} label={a.label} accent={a.accent} t={t} onClick={() => navigate(a.path)} />
+          ))}
       </div>
+      </div>
+
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "12px", marginBottom: "clamp(20px,4vw,32px)" }}>
         {stats.map((s) => <StatCard key={s.label} stat={s} t={t} loading={loading} />)}
@@ -82,7 +113,8 @@ const MentorDashboard = () => {
         ) : (
           <div style={{ borderRadius: "12px", border: `1px dashed ${t.border}`, padding: "48px 24px", textAlign: "center" }}>
             <LayoutGridIcon size={32} style={{ color: t.textFaint, marginBottom: "12px" }} />
-            <p style={{ fontSize: "14px", fontWeight: 500, color: t.textMuted }}>No programs assigned yet {id}</p>
+            {/* removed undefined {id} reference */}
+            <p style={{ fontSize: "14px", fontWeight: 500, color: t.textMuted }}>No programs assigned yet</p>
             <p style={{ fontSize: "12px", color: t.textMuted, marginTop: "4px", opacity: 0.7 }}>Contact your HR manager to get assigned.</p>
           </div>
         )}
@@ -94,7 +126,7 @@ const MentorDashboard = () => {
 
 const ProgramCard = ({ prog, t, isDark, navigate }) => {
   const [expanded, setExpanded] = useState(false);
-  const interns = prog.interns || [];
+  const interns     = prog.interns || [];
   const internCount = interns.length;
 
   return (
