@@ -6,7 +6,6 @@ import PageLayout from "../../components/PageLayout.jsx";
 import {
   UsersIcon, LayoutGridIcon, ClipboardListIcon,
   ChevronDownIcon, ChevronUpIcon, ClockIcon, UserIcon,
-  PlusIcon,
 } from "lucide-react";
 
 const themes = {
@@ -15,12 +14,14 @@ const themes = {
     border: "rgba(255,255,255,0.07)", text: "#f9fafb", textMuted: "#6b7280",
     textFaint: "#374151", rowHover: "rgba(255,255,255,0.03)",
     theadBg: "rgba(255,255,255,0.03)", skeletonBg: "rgba(255,255,255,0.08)",
+    btnBg: "rgba(255,255,255,0.04)", btnBorder: "rgba(255,255,255,0.08)", btnText: "#e5e7eb",
   },
   light: {
     surface: "rgba(255,255,255,0.85)", surfaceHover: "rgba(255,255,255,1)",
     border: "rgba(0,0,0,0.08)", text: "#111827", textMuted: "#6b7280",
     textFaint: "#d1d5db", rowHover: "rgba(0,0,0,0.02)",
     theadBg: "rgba(0,0,0,0.03)", skeletonBg: "rgba(0,0,0,0.07)",
+    btnBg: "rgba(255,255,255,0.8)", btnBorder: "rgba(0,0,0,0.09)", btnText: "#374151",
   },
 };
 
@@ -40,59 +41,43 @@ const MentorDashboard = () => {
 
   const totalInterns = programs.reduce((acc, p) => acc + (p.interns?.length || 0), 0);
 
-  const quickActions = [
-    { label: "Assigned Tasks", path: "/show-tasks",    accent: "#6366f1" },
-  ];
-
   const stats = [
     { label: "Assigned Programs", value: programs.length, icon: LayoutGridIcon,    accent: "#6366f1", bg: "rgba(99,102,241,0.1)" },
     { label: "Total Interns",     value: totalInterns,     icon: UsersIcon,         accent: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { label: "Active Tasks",      value: "—",              icon: ClipboardListIcon, accent: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: "Active Tasks",      value: "—",              icon: ClipboardListIcon, accent: "#f59e0b", bg: "rgba(245,158,11,0.1)",
+      onClick: () => navigate("/show-tasks") },
   ];
-
-  const ActionButton = ({ label, accent, t, onClick }) => {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex", alignItems: "center", gap: "6px",
-        padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 500,
-        background: hovered ? `${accent}18` : t.btnGhost,
-        border: `1px solid ${hovered ? `${accent}50` : t.btnGhostBorder}`,
-        color: hovered ? accent : t.btnGhostText,
-        cursor: "pointer", transition: "all 0.15s",
-      }}
-    >
-      <PlusIcon size={13} />{label}
-    </button>
-  );
-};
 
   return (
     <PageLayout backPath={null}>
+      {/* Header */}
       <div style={{ marginBottom: "clamp(20px,4vw,32px)" }}>
         <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", color: "#6366f1", marginBottom: "4px" }}>
           Aetherbyte IT Solutions
         </p>
-        <h1 style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 700, letterSpacing: "-0.02em", color: t.text, margin: 0 }}>
-          Mentor Dashboard
-        </h1>
-        <p style={{ fontSize: "13px", color: t.textMuted, marginTop: "4px" }}>Your assigned programs and interns.</p>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {quickActions.map((a) => (
-              <ActionButton key={a.label} label={a.label} accent={a.accent} t={t} onClick={() => navigate(a.path)} />
-          ))}
-      </div>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <h1 style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 700, letterSpacing: "-0.02em", color: t.text, margin: 0 }}>
+              Mentor Dashboard
+            </h1>
+            <p style={{ fontSize: "13px", color: t.textMuted, marginTop: "4px" }}>Your assigned programs and interns.</p>
+          </div>
+          {/* Fixed action button using correct theme tokens */}
+          <NavButton
+            label="View Assigned Tasks"
+            accent="#6366f1"
+            t={t}
+            onClick={() => navigate("/show-tasks")}
+          />
+        </div>
       </div>
 
-
+      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "12px", marginBottom: "clamp(20px,4vw,32px)" }}>
         {stats.map((s) => <StatCard key={s.label} stat={s} t={t} loading={loading} />)}
       </div>
 
+      {/* Programs */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
           <h2 style={{ fontSize: "14px", fontWeight: 600, color: t.text, whiteSpace: "nowrap", margin: 0 }}>Assigned Programs</h2>
@@ -113,7 +98,6 @@ const MentorDashboard = () => {
         ) : (
           <div style={{ borderRadius: "12px", border: `1px dashed ${t.border}`, padding: "48px 24px", textAlign: "center" }}>
             <LayoutGridIcon size={32} style={{ color: t.textFaint, marginBottom: "12px" }} />
-            {/* removed undefined {id} reference */}
             <p style={{ fontSize: "14px", fontWeight: 500, color: t.textMuted }}>No programs assigned yet</p>
             <p style={{ fontSize: "12px", color: t.textMuted, marginTop: "4px", opacity: 0.7 }}>Contact your HR manager to get assigned.</p>
           </div>
@@ -121,6 +105,28 @@ const MentorDashboard = () => {
       </div>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
     </PageLayout>
+  );
+};
+
+// ─── Nav button — uses explicit theme tokens (no btnGhost) ────────────────────
+const NavButton = ({ label, accent, t, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: "6px",
+        padding: "8px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 500,
+        background: hovered ? `${accent}18` : t.btnBg,
+        border: `1px solid ${hovered ? `${accent}50` : t.btnBorder}`,
+        color: hovered ? accent : t.btnText,
+        cursor: "pointer", transition: "all 0.15s", fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <ClipboardListIcon size={13} /> {label}
+    </button>
   );
 };
 
@@ -167,10 +173,7 @@ const ProgramCard = ({ prog, t, isDark, navigate }) => {
                 <tbody>
                   {interns.map((intern, i) => (
                     <InternRow
-                      key={intern._id}
-                      intern={intern}
-                      t={t}
-                      isLast={i === interns.length - 1}
+                      key={intern._id} intern={intern} t={t} isLast={i === interns.length - 1}
                       onAssign={() => navigate(`/assign-task/${prog._id}/${intern._id}`, { state: { internName: intern.name, programTitle: prog.title } })}
                     />
                   ))}
@@ -217,19 +220,27 @@ const InternRow = ({ intern, t, isLast, onAssign }) => {
   );
 };
 
-const StatCard = ({ stat, t, loading }) => (
-  <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "12px", padding: "18px", transition: "background 0.3s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-      <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 500 }}>{stat.label}</span>
-      <div style={{ background: stat.bg, borderRadius: "8px", padding: "6px", display: "flex" }}>
-        <stat.icon size={14} style={{ color: stat.accent }} />
+const StatCard = ({ stat, t, loading }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={stat.onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ background: hovered && stat.onClick ? t.surfaceHover : t.surface, border: `1px solid ${t.border}`, borderRadius: "12px", padding: "18px", transition: "all 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", cursor: stat.onClick ? "pointer" : "default", transform: hovered && stat.onClick ? "translateY(-1px)" : "none" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 500 }}>{stat.label}</span>
+        <div style={{ background: stat.bg, borderRadius: "8px", padding: "6px", display: "flex" }}>
+          <stat.icon size={14} style={{ color: stat.accent }} />
+        </div>
       </div>
+      {loading
+        ? <div style={{ height: "32px", width: "48px", borderRadius: "6px", background: t.skeletonBg }} />
+        : <div style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, letterSpacing: "-0.03em", color: t.text }}>{stat.value}</div>
+      }
     </div>
-    {loading
-      ? <div style={{ height: "32px", width: "48px", borderRadius: "6px", background: t.skeletonBg }} />
-      : <div style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, letterSpacing: "-0.03em", color: t.text }}>{stat.value}</div>
-    }
-  </div>
-);
+  );
+};
 
 export default MentorDashboard;
