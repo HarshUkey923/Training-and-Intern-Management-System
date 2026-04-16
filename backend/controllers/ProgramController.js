@@ -17,6 +17,18 @@ export const GetPrograms = async (req, res) => {
     res.status(200).json(programs);
 };
 
+export const GetInternProgram = async (req, res) => {
+    const programs = await Program.find({ interns: req.user.id })
+        .populate("createdBy", "name email")
+        .populate("mentors", "name");
+
+    if (!programs.length) {
+        return res.status(404).json({ message: "No program assigned to you yet." });
+    }
+
+    res.status(200).json(programs);
+};
+
 export const UpdateProgram = async (req, res) => {
     const { title, description, duration } = req.body;
     const program = await Program.findById(req.params.programId);
@@ -24,7 +36,7 @@ export const UpdateProgram = async (req, res) => {
     if (!program) {
         return res.status(404).json({ message: "Program not found." });
     }
-    program.name = name || program.name;
+    program.title = title || program.title;
     program.description = description || program.description;
     program.duration = duration || program.duration;
     await program.save();

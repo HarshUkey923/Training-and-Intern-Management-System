@@ -36,8 +36,7 @@ const MyProgram = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // GET /api/programs — Intern role is allowed
-        const res = await api.get("/programs");
+        const res = await api.get("/programs/program-intern");
         setPrograms(res.data || []);
       } catch {
         toast.error("Failed to load programs");

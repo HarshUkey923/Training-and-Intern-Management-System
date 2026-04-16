@@ -33,6 +33,6 @@ router.post("/",    protect(["Intern"]), authorize("Intern"), upload.single("fil
 router.get("/my",   protect(["Intern"]), authorize("Intern"), GetMySubmissions);
 router.get("/mentor",               protect(["Mentor"]), authorize("Mentor"), GetSubmissionsForMentor);
 router.put("/:submissionId/review", protect(["Mentor"]), authorize("Mentor"), ReviewSubmission);
-router.get("/all",  protect(["HR", "Admin"]), authorize("HR", "Admin"), GetAllSubmissions);
+router.get("/all",  protect(["HR", "Mentor"]), authorize("HR", "Mentor"), GetAllSubmissions);
 
 export default router;
