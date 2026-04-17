@@ -4,9 +4,9 @@ import { CreateProgram, GetPrograms, GetInternProgram, UpdateProgram } from '../
 
 const router = express.Router();
 
-router.post('/', protect, authorize('HR'), CreateProgram);
-router.get('/', protect, authorize(['HR', 'Mentor', 'Intern']), GetPrograms);
-router.get('/program-intern', protect, authorize('Intern'), GetInternProgram);
-router.put('/:programId', protect, authorize('HR'), UpdateProgram);
+router.post('/',               protect(["HR"]),                          authorize("HR"),             CreateProgram);
+router.get('/',                protect(["HR", "Mentor", "Intern"]),      authorize("HR", "Mentor", "Intern"), GetPrograms);
+router.get('/program-intern',  protect(["Intern"]),                      authorize("Intern"),          GetInternProgram);
+router.put('/:programId',      protect(["HR"]),                          authorize("HR"),              UpdateProgram);
 
 export default router;

@@ -26,6 +26,10 @@ if(process.env.NODE_ENV === "development"){
 
 }
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
+
 app.use("/api/auth", AuthRoutes);
 app.use("/api/interns", InternRoutes);
 app.use("/api/programs", ProgramRoutes);
@@ -35,15 +39,11 @@ app.use("/api/reports", ReportRoutes);
 app.use("/api/hr", HrRoutes);
 app.use("/api/mentor", MentorRoutes);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static("uploads"));
-
 if(process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "../frontend/dist")))
 
-    app.get("/*", (req, res) => {
-        res.sendFile(path.join(__dirname, "../frontend/dist/index.html"))
+    app.get("/", (req, res) => {
+        res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"))
 })
 }
 
@@ -52,4 +52,5 @@ connectDB();
 const PORT = process.env.PORT || 5001
 app.listen(PORT, () => {
     console.log(`Server started on PORT: ${PORT}`);
-});
+}); 
+;

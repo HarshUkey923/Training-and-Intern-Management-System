@@ -5,7 +5,7 @@ import PageLayout from "../../components/PageLayout.jsx";
 import { FormCard, StyledInput, PrimaryButton } from "../../components/FormComponents.jsx";
 
 const AddIntern = () => {
-  const [form, setForm] = useState({ name: "", email: "", password: "", college: "", department: "", skills: "" });
+  const [form, setForm] = useState({ name: "", gender: "", email: "", password: "", college: "", department: "", skills: "" });
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -16,7 +16,7 @@ const AddIntern = () => {
     try {
       await api.post("/hr/intern", form);
       toast.success("Intern added successfully");
-      setForm({ name: "", email: "", password: "", college: "", department: "", skills: "" });
+      setForm({ name: "", gender: "", email: "", password: "", college: "", department: "", skills: "" });
     } catch (err) {
       toast.error(err.response?.data?.message || "Error adding intern");
     } finally {
@@ -30,10 +30,14 @@ const AddIntern = () => {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
             <StyledInput label="Full Name" name="name" placeholder="e.g. Riya Sharma" value={form.name} onChange={handleChange} required />
-            <StyledInput label="Email Address" name="email" type="email" placeholder="riya@example.com" value={form.email} onChange={handleChange} required />
+            <StyledInput label="Gender" name="gender" placeholder="e.g. VNIT Nagpur" value={form.gender} onChange={handleChange} required />
           </div>
 
-          <StyledInput label="Password" name="password" type="password" placeholder="Set a secure password" value={form.password} onChange={handleChange} required />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+            <StyledInput label="Email Address" name="email" type="email" placeholder="riya@example.com" value={form.email} onChange={handleChange} required />
+            <StyledInput label="Password" name="password" type="password" placeholder="Set a secure password" value={form.password} onChange={handleChange} required />
+          </div>
+
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
             <StyledInput label="College" name="college" placeholder="e.g. VNIT Nagpur" value={form.college} onChange={handleChange} required />

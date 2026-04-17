@@ -1,14 +1,19 @@
 import express from "express";
-import { authorize, protect } from "../middleware/AuthMiddleware.js";
-import { CertificateEligibilityReport, InternProgressReport, MentorWorkloadReport, ProgramWiseInterns, TaskStatusReport } from "../controllers/ReportController.js";
+import { protect, authorize } from "../middleware/AuthMiddleware.js";
+import {
+  GetOverview,
+  GetInternReports,
+  GetProgramReports,
+  IssueCertificate,
+  GetCertificates,
+} from "../controllers/ReportController.js";
 
 const router = express.Router();
 
-router.get("/intern-progress", protect, authorize('HR'), InternProgressReport);
-router.get("/program-interns", protect, authorize('HR'), ProgramWiseInterns);
-router.get("/mentor-workload", protect, authorize('HR'), MentorWorkloadReport);
-router.get("/task-status", protect, authorize('HR'), TaskStatusReport);
-router.get("/certificate-eligibility", protect, authorize('HR'), CertificateEligibilityReport);
-
+router.get("/overview",    protect(["HR"]), authorize("HR"), GetOverview);
+router.get("/interns",     protect(["HR"]), authorize("HR"), GetInternReports);
+router.get("/programs",    protect(["HR"]), authorize("HR"), GetProgramReports);
+router.post("/certificate",  protect(["HR"]), authorize("HR"), IssueCertificate);
+router.get("/certificates",  protect(["HR"]), authorize("HR"), GetCertificates);
 
 export default router;

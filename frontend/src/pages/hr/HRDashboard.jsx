@@ -90,6 +90,7 @@ const HRDashboard = () => {
     { label: "New Program", path: "/program",    accent: "#6366f1" },
     { label: "Add Intern",  path: "/add-intern", accent: "#10b981" },
     { label: "Add Mentor",  path: "/add-mentor", accent: "#f59e0b" },
+    { label: "Reports", path: "/reports"}
   ];
 
   return (

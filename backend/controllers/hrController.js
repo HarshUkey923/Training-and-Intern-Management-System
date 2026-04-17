@@ -64,9 +64,9 @@ export const GetInternByProgram = async (req, res) => {
 };
 
 export const AddIntern = async (req, res) => {
-    const { name, email, password, college, department, skills } = req.body;
+    const { name, gender, email, password, college, department, skills } = req.body;
  
-    if (!name || !email || !password || !college || !department || !skills) {
+    if (!name || !gender || !email || !password || !college || !department || !skills) {
         return res.status(400).json({ message: "Required fields missing." });
     }
  
@@ -82,6 +82,7 @@ export const AddIntern = async (req, res) => {
  
         const intern = await Intern.create({
             name,
+            gender,
             email,
             college,
             department,
