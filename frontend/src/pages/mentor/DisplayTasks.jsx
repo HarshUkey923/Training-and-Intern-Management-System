@@ -36,16 +36,22 @@ const STATUS_CONFIG = {
   Reviewed:  { label: "Reviewed",  color: "#10b981", bg: "rgba(16,185,129,0.1)",  icon: CheckCircleIcon },
 };
 
-const BASE = import.meta.env.MODE === "development" ? "http://localhost:5001" : "";
+// ─── File URL helpers — work with both Cloudinary and local paths ─────────────
+// Cloudinary returns a full https:// URL → use as-is
+// Local dev stores relative paths like "uploads/file.pdf" → prepend localhost
+const fileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
+  const base = import.meta.env.MODE === "development" ? "http://localhost:5001" : "";
+  return `${base}/${filePath.replace(/\\/g, "/")}`;
+};
 
-// Returns a clean download URL for a stored file path
-const fileUrl = (path) => path ? `${BASE}/${path.replace(/\\/g, "/")}` : null;
-
-// Derives a readable filename from a stored path
-const fileName = (path) => {
-  if (!path) return "Attachment";
-  const parts = path.replace(/\\/g, "/").split("/");
-  return parts[parts.length - 1];
+const fileName = (filePath) => {
+  if (!filePath) return "Attachment";
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  const last = parts[parts.length - 1];
+  // Strip Cloudinary version prefix (v1234567890_name) if present
+  return decodeURIComponent(last.replace(/^v\d+_/, ""));
 };
 
 const DisplayTasks = () => {

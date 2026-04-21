@@ -26,7 +26,11 @@ if (process.env.NODE_ENV === "development") {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Serve local uploads only in dev — production uses Cloudinary
+if (process.env.NODE_ENV === "development") {
+  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+}
 
 app.use("/api/auth",        AuthRoutes);
 app.use("/api/interns",     InternRoutes);
@@ -39,7 +43,6 @@ app.use("/api/mentor",      MentorRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
   app.get("/{*splat}", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
@@ -48,6 +51,4 @@ if (process.env.NODE_ENV === "production") {
 connectDB();
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`Server started on PORT: ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server started on PORT: ${PORT}`));
