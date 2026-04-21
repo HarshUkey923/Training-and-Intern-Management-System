@@ -18,19 +18,16 @@ dotenv.config();
 const app = express();
 const __dirname = path.resolve();
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === "development") {
   app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 } else {
   app.use(cors());
 }
 
-// ─── Body parsers ─────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/auth",        AuthRoutes);
 app.use("/api/interns",     InternRoutes);
 app.use("/api/programs",    ProgramRoutes);
@@ -40,11 +37,9 @@ app.use("/api/reports",     ReportRoutes);
 app.use("/api/hr",          HrRoutes);
 app.use("/api/mentor",      MentorRoutes);
 
-// ─── Production: serve React + catch-all for client-side routing ──────────────
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  // Express 5 requires "/{*splat}" — "*" and "/*" no longer work
   app.get("/{*splat}", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });

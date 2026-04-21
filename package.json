@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/HarshUkey923/TIMS/issues"
   },
-  "homepage": "https://github.com/HarshUkey923/TIMS#readme"
+  "homepage": "https://github.com/HarshUkey923/TIMS#readme",
+  "dependencies": {
+    "multer-storage-cloudinary": "^4.0.0"
+  }
 }
