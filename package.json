@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/HarshUkey923/TIMS#readme",
   "dependencies": {
-    "cloudinary": "^1.41.3"
+    "cloudinary": "^1.41.3",
+    "multer-storage-cloudinary": "^4.0.0"
   }
 }
