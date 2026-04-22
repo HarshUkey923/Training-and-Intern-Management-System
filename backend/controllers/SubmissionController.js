@@ -29,9 +29,12 @@ const getMentorFromUser = async (userId) => {
   return mentor;
 };
 
-// ─── Intern: Submit a task ────────────────────────────────────────────────────
+// Intern: Submit a task
 export const SubmitTask = async (req, res) => {
   try {
+    console.log("Body:", req.body);
+    console.log("File:", req.file);
+    console.log("User:", req.user);
     const { taskId, note } = req.body;
     const intern = await getInternFromUser(req.user.id);
 
@@ -54,11 +57,11 @@ export const SubmitTask = async (req, res) => {
       fileUrl: req.file ? req.file.path : null,
     });
 
-    // Sync task status
     await Task.findByIdAndUpdate(taskId, { status: "Submitted" });
 
     res.status(201).json({ message: "Task submitted successfully.", submission });
   } catch (error) {
+    console.error("SubmitTask error:", error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -9,33 +9,34 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ─── Storage: uploads to Cloudinary instead of local disk ────────────────────
+// ─── CloudinaryStorage ────────────────────────────────────────────────────────
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: (req, file) => {
-    // Determine folder based on route context
+  params: async (req, file) => {
     const folder = req.baseUrl?.includes("submission") ? "tims/submissions" : "tims/tasks";
+    const safeName = file.originalname
+      .replace(/\s+/g, "_")
+      .replace(/\.[^.]+$/, ""); // strip extension — Cloudinary adds it back
     return {
       folder,
-      resource_type: "auto",        // handles pdf, doc, zip, images
-      allowed_formats: ["pdf", "doc", "docx", "zip", "png", "jpg", "jpeg"],
-      // Use original filename + timestamp to avoid collisions
-      public_id: `${Date.now()}-${file.originalname.replace(/\s+/g, "_").replace(/\.[^.]+$/, "")}`,
+      resource_type: "auto",
+      public_id: `${Date.now()}-${safeName}`,
+      // No allowed_formats here — handled by fileFilter below
     };
   },
 });
 
-// ─── Multer instance ──────────────────────────────────────────────────────────
+// ─── Multer v1 instance ───────────────────────────────────────────────────────
 export const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = /pdf|doc|docx|zip|png|jpg|jpeg/i;
-    const ext = file.originalname.split(".").pop();
-    if (allowed.test(ext)) {
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["pdf", "doc", "docx", "zip", "png", "jpg", "jpeg"];
+    const ext = file.originalname.split(".").pop().toLowerCase();
+    if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("File type not allowed. Allowed: pdf, doc, docx, zip, png, jpg, jpeg"));
+      cb(new Error(`File type .${ext} not allowed. Allowed: ${allowed.join(", ")}`));
     }
   },
 });

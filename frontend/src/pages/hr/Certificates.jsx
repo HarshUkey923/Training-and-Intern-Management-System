@@ -5,7 +5,9 @@ import { useTheme } from "../../context/ThemeContext.jsx";
 import PageLayout from "../../components/PageLayout.jsx";
 import { FormCard, StyledSelect, PrimaryButton } from "../../components/FormComponents.jsx";
 import toast from "react-hot-toast";
-import { AwardIcon, CalendarIcon, PrinterIcon } from "lucide-react";
+import {
+  AwardIcon, CalendarIcon, PrinterIcon,
+} from "lucide-react";
 
 const themes = {
   dark: {
@@ -22,21 +24,30 @@ const themes = {
   },
 };
 
+const TITLES = ["Mr.", "Ms.", "Mrs.", "Dr."];
+
+// ─── Generate a certificate number from the cert _id + issue date ─────────────
+const certNumber = (cert) => {
+  const year  = new Date(cert.issuedAt).getFullYear();
+  const short = cert._id?.toString().slice(-6).toUpperCase();
+  return `TIMS-${year}-${short}`;
+};
+
 const Certificates = () => {
   const { isDark } = useTheme();
   const t = isDark ? themes.dark : themes.light;
   const [searchParams] = useSearchParams();
   const preselectedIntern = searchParams.get("intern");
 
-  const [certs, setCerts]       = useState([]);
-  const [interns, setInterns]   = useState([]);
+  const [certs, setCerts]     = useState([]);
+  const [interns, setInterns] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [form, setForm]         = useState({ internId: preselectedIntern || "", programId: "" });
-  const [loading, setLoading]   = useState(true);
-  const [issuing, setIssuing]   = useState(false);
-  const [preview, setPreview]   = useState(null);
-  // printTarget: cert to print directly without showing modal first
+  const [form, setForm]       = useState({ internId: preselectedIntern || "", programId: "", title: "Mr." });
+  const [loading, setLoading] = useState(true);
+  const [issuing, setIssuing] = useState(false);
+  const [preview, setPreview] = useState(null);
   const [printTarget, setPrintTarget] = useState(null);
+  const printRef = useRef();
 
   const fetchCerts = () =>
     api.get("/reports/certificates").then((r) => setCerts(r.data)).catch(console.log);
@@ -59,9 +70,9 @@ const Certificates = () => {
     if (!form.internId || !form.programId) { toast.error("Select both intern and program"); return; }
     setIssuing(true);
     try {
-      await api.post("/reports/certificate", form);
+      await api.post("/reports/certificate", { internId: form.internId, programId: form.programId, title: form.title });
       toast.success("Certificate issued!");
-      setForm({ internId: "", programId: "" });
+      setForm({ internId: "", programId: "", title: "Mr." });
       fetchCerts();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to issue certificate");
@@ -70,18 +81,14 @@ const Certificates = () => {
     }
   };
 
-  // Print: show the hidden print-only cert, then window.print(), then hide it
   const handlePrint = (cert) => {
     setPrintTarget(cert);
-    // useEffect below watches printTarget and fires print after render
   };
 
   useEffect(() => {
     if (!printTarget) return;
-    // Use requestAnimationFrame to ensure the DOM has painted before printing
     const raf = requestAnimationFrame(() => {
       window.print();
-      // Give print dialog time to open before clearing the target
       setTimeout(() => setPrintTarget(null), 1000);
     });
     return () => cancelAnimationFrame(raf);
@@ -99,18 +106,41 @@ const Certificates = () => {
         {/* Issue form */}
         <FormCard title="Issue Certificate" subtitle="Select an intern and their completed program">
           <form onSubmit={handleIssue} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            <StyledSelect label="Intern" value={form.internId} onChange={(e) => setForm({ ...form, internId: e.target.value })} required>
-              <option value="">Select intern...</option>
-              {interns.map((i) => (
-                <option key={i._id} value={i._id}>{i.name} — {i.college || i.email}</option>
-              ))}
-            </StyledSelect>
-            <StyledSelect label="Program" value={form.programId} onChange={(e) => setForm({ ...form, programId: e.target.value })} required>
+
+            {/* Title + Intern on same row */}
+            <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: "10px" }}>
+              <StyledSelect
+                label="Title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              >
+                {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+              </StyledSelect>
+              <StyledSelect
+                label="Intern"
+                value={form.internId}
+                onChange={(e) => setForm({ ...form, internId: e.target.value })}
+                required
+              >
+                <option value="">Select intern...</option>
+                {interns.map((i) => (
+                  <option key={i._id} value={i._id}>{i.name} — {i.college || i.email}</option>
+                ))}
+              </StyledSelect>
+            </div>
+
+            <StyledSelect
+              label="Program"
+              value={form.programId}
+              onChange={(e) => setForm({ ...form, programId: e.target.value })}
+              required
+            >
               <option value="">Select program...</option>
               {programs.map((p) => (
                 <option key={p._id} value={p._id}>{p.title}</option>
               ))}
             </StyledSelect>
+
             <div style={{ marginTop: "4px" }}>
               <PrimaryButton type="submit" loading={issuing}>
                 <AwardIcon size={14} /> Issue Certificate
@@ -119,12 +149,13 @@ const Certificates = () => {
           </form>
         </FormCard>
 
-        {/* Certs list */}
+        {/* Certificates list */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <h2 style={{ fontSize: "14px", fontWeight: 600, color: t.text, margin: 0 }}>Issued Certificates</h2>
             <span style={{ fontSize: "11px", background: "rgba(245,158,11,0.12)", color: "#f59e0b", padding: "2px 8px", borderRadius: "20px" }}>{certs.length}</span>
           </div>
+
           {loading ? (
             [1,2,3].map(i => <div key={i} style={{ height: "90px", borderRadius: "12px", background: t.skeletonBg, animation: "pulse 1.5s ease-in-out infinite" }} />)
           ) : certs.length === 0 ? (
@@ -146,10 +177,14 @@ const Certificates = () => {
 
       {/* View modal */}
       {preview && (
-        <CertModal cert={preview} onClose={() => setPreview(null)} onPrint={() => { setPreview(null); handlePrint(preview); }} />
+        <CertModal
+          cert={preview}
+          onClose={() => setPreview(null)}
+          onPrint={() => { setPreview(null); handlePrint(preview); }}
+        />
       )}
 
-      {/* Hidden print-only certificate — rendered in DOM but invisible until print */}
+      {/* Hidden print-only certificate */}
       {printTarget && (
         <div id="cert-print-only" style={{ display: "none" }}>
           <CertContent cert={printTarget} />
@@ -158,19 +193,14 @@ const Certificates = () => {
 
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-        /* Print: hide everything EXCEPT the cert */
         @media print {
           body * { visibility: hidden; }
-          #cert-print-only,
-          #cert-print-only * { visibility: visible; display: block !important; }
+          #cert-print-only, #cert-print-only * { visibility: visible; display: block !important; }
           #cert-print-only {
-            position: fixed;
-            top: 0; left: 0;
+            position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
             display: flex !important;
-            align-items: center;
-            justify-content: center;
+            align-items: center; justify-content: center;
             background: white;
           }
         }
@@ -179,39 +209,62 @@ const Certificates = () => {
   );
 };
 
-// ─── Reusable cert content (used in both modal and print area) ────────────────
+// ─── Shared certificate content ───────────────────────────────────────────────
 const CertContent = ({ cert }) => {
   const issuedDate = new Date(cert.issuedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const certNo     = certNumber(cert);
+  const honorific  = cert.title || "Mr.";
+  const fullName   = `${honorific} ${cert.internId?.name || "—"}`;
+
   return (
     <div style={{
       background: "#fffdf5",
       border: "3px solid #f59e0b",
       borderRadius: "16px",
-      padding: "48px",
+      padding: "40px 48px",
       width: "580px",
       textAlign: "center",
       fontFamily: "'DM Sans', serif",
       boxShadow: "inset 0 0 0 8px rgba(245,158,11,0.06)",
+      position: "relative",
     }}>
+      {/* Certificate number — top right corner */}
+      <div style={{
+        position: "absolute", top: "18px", right: "22px",
+        fontSize: "10px", fontWeight: 600, color: "#a16207",
+        letterSpacing: "0.08em", fontFamily: "monospace",
+      }}>
+        {certNo}
+      </div>
+
+      {/* Gold accent bar */}
       <div style={{ height: "4px", background: "linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b)", borderRadius: "2px", marginBottom: "28px" }} />
 
+      {/* Org name */}
       <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#92400e", marginBottom: "8px" }}>
         Aetherbyte IT Solutions
       </p>
 
       <AwardIcon size={40} style={{ color: "#f59e0b", marginBottom: "14px" }} />
 
-      <p style={{ fontSize: "14px", color: "#78350f", marginBottom: "6px", letterSpacing: "0.05em" }}>Certificate of Completion</p>
-      <p style={{ fontSize: "13px", color: "#92400e", marginBottom: "20px" }}>This is to certify that</p>
+      <p style={{ fontSize: "14px", color: "#78350f", marginBottom: "6px", letterSpacing: "0.05em" }}>
+        Certificate of Completion
+      </p>
+      <p style={{ fontSize: "13px", color: "#92400e", marginBottom: "20px" }}>
+        This is to certify that
+      </p>
 
+      {/* Name with title prefix */}
       <h2 style={{ fontSize: "28px", fontWeight: 700, color: "#1c1917", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-        {cert.internId?.name || "—"}
+        {fullName}
       </h2>
       <p style={{ fontSize: "12px", color: "#78350f", marginBottom: "20px" }}>
         {cert.internId?.college || cert.internId?.email || ""}
       </p>
 
-      <p style={{ fontSize: "14px", color: "#44403c", marginBottom: "8px" }}>has successfully completed the internship program</p>
+      <p style={{ fontSize: "14px", color: "#44403c", marginBottom: "8px" }}>
+        has successfully completed the internship program
+      </p>
       <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#6366f1", margin: "0 0 6px" }}>
         {cert.programId?.title || "—"}
       </h3>
@@ -219,6 +272,7 @@ const CertContent = ({ cert }) => {
         Duration: {cert.programId?.duration || "—"}
       </p>
 
+      {/* Footer row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderTop: "1px solid rgba(245,158,11,0.3)", paddingTop: "20px" }}>
         <div style={{ textAlign: "left" }}>
           <p style={{ fontSize: "11px", color: "#92400e", margin: 0 }}>Issued by</p>
@@ -237,23 +291,14 @@ const CertContent = ({ cert }) => {
 
 // ─── View modal ───────────────────────────────────────────────────────────────
 const CertModal = ({ cert, onClose, onPrint }) => (
-  <div
-    onClick={onClose}
-    style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
-  >
+  <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
     <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
       <CertContent cert={cert} />
       <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          onClick={onPrint}
-          style={{ padding: "9px 20px", borderRadius: "8px", background: "#10b981", color: "#fff", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: "6px" }}
-        >
+        <button onClick={onPrint} style={{ padding: "9px 20px", borderRadius: "8px", background: "#10b981", color: "#fff", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: "6px" }}>
           <PrinterIcon size={14} /> Print / Save PDF
         </button>
-        <button
-          onClick={onClose}
-          style={{ padding: "9px 20px", borderRadius: "8px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
-        >
+        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: "8px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
           Close
         </button>
       </div>
@@ -261,10 +306,12 @@ const CertModal = ({ cert, onClose, onPrint }) => (
   </div>
 );
 
-// ─── Cert card ────────────────────────────────────────────────────────────────
+// ─── Cert list card ───────────────────────────────────────────────────────────
 const CertCard = ({ cert, t, onPreview, onPrint }) => {
   const [hovered, setHovered] = useState(false);
   const issuedDate = new Date(cert.issuedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const honorific  = cert.title || "";
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -278,10 +325,13 @@ const CertCard = ({ cert, t, onPreview, onPrint }) => {
           </div>
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: "13px", fontWeight: 600, color: t.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {cert.internId?.name || "—"}
+              {honorific} {cert.internId?.name || "—"}
             </p>
             <p style={{ fontSize: "11px", color: t.textMuted, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {cert.programId?.title || "—"}
+            </p>
+            <p style={{ fontSize: "10px", color: t.textMuted, margin: "2px 0 0", fontFamily: "monospace", opacity: 0.7 }}>
+              {certNumber(cert)}
             </p>
           </div>
         </div>
