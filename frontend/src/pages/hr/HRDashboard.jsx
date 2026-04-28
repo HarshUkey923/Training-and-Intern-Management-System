@@ -96,10 +96,11 @@ const HRDashboard = () => {
   ];
 
   const quickActions = [
+    { label: "Add HR",       path: "/hr/add-hr", accent: "#10b981"},
     { label: "New Program",  path: "/hr/program",    accent: "#6366f1" },
     { label: "Add Intern",   path: "/hr/add-intern", accent: "#10b981" },
     { label: "Add Mentor",   path: "/hr/add-mentor", accent: "#f59e0b" },
-    { label: "Reports",      path: "/hr/reports", accent: "#ec4899" },
+    { label: "Reports",      path: "/hr/reports", accent: "#ec4899" }
   ];
 
   return (

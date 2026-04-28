@@ -6,7 +6,7 @@ import {
     AssignInternToProgram, RemoveInternFromProgram,
     AddMentor, GetMentors, GetMentorById, DeleteMentor,
     AssignMentor, RemoveMentorFromProgram,
-    ApproveCertificate,
+    AddHR, ApproveCertificate,
 } from "../controllers/hrController.js";
 
 const router = express.Router();
@@ -32,6 +32,9 @@ router.delete("/mentor/:id",         protect(["HR"]), authorize("HR"), DeleteMen
 router.get("/get-mentor/:id",        protect(["HR"]), authorize("HR"), GetMentorById);
 router.put("/assign-mentor",         protect(["HR"]), authorize("HR"), AssignMentor);
 router.put("/remove-mentor",         protect(["HR"]), authorize("HR"), RemoveMentorFromProgram);
+
+// ─── HR accounts — only existing HR can create new HR ─────────────────────────
+router.post("/add-hr",               protect(["HR"]), authorize("HR"), AddHR);
 
 // ─── Certificate ──────────────────────────────────────────────────────────────
 router.put("/certificate/:id",       protect(["HR"]), authorize("HR"), ApproveCertificate);

@@ -4,6 +4,7 @@ import Register        from "./pages/Register";
 import ProtectedRoute  from "./components/ProtectedRoute";
 
 import HRDashboard   from "./pages/hr/HRDashboard";
+import AddHR         from "./pages/hr/AddHr";
 import CreateProgram from "./pages/hr/CreateProgram";
 import AssignIntern  from "./pages/hr/AssignIntern";
 import AddIntern     from "./pages/hr/AddIntern";
@@ -27,9 +28,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/"         element={<Login />} />
-        <Route path="/register" element={<Register />} />
 
         <Route path="/hr"                  element={<ProtectedRoute allowedRoles={["HR"]}><HRDashboard /></ProtectedRoute>} />
+        <Route path="/hr/add-hr"              element={<ProtectedRoute allowedRoles={["HR"]}><AddHR/></ProtectedRoute>}/>
         <Route path="/hr/program"             element={<ProtectedRoute allowedRoles={["HR"]}><CreateProgram /></ProtectedRoute>} />
         <Route path="/hr/details/:id"         element={<ProtectedRoute allowedRoles={["HR"]}><Details /></ProtectedRoute>} />
         <Route path="/hr/assign-program/:id"  element={<ProtectedRoute allowedRoles={["HR"]}><AssignIntern /></ProtectedRoute>} />

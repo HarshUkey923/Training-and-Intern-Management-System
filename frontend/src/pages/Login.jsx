@@ -97,26 +97,6 @@ const subText = isDark ? "#9ca3af" : "#6b7280";
 
             </form>
 
-            <p style={{
-              marginTop: "16px",
-              fontSize: "12px",
-              opacity: 0.7,
-              textAlign: "center",
-              color: text
-            }}>
-              Don’t have an account?{" "}
-              <span
-                style={{
-                  color: "#6366f1",
-                  cursor: "pointer",
-                  fontWeight: "500"
-                }}
-                onClick={() => navigate("/register")}
-              >
-                Register
-              </span>
-            </p>
-
           </div>
 
         </SurfaceCard>
