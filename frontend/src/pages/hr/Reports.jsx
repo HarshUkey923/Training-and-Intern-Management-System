@@ -73,7 +73,7 @@ const Reports = () => {
           <p style={{ fontSize: "13px", color: t.textMuted, marginTop: "4px" }}>Program performance, intern progress, and certifications.</p>
         </div>
         <button
-          onClick={() => navigate("/certificates")}
+          onClick={() => navigate("/hr/certificates")}
           style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "10px", background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
         >
           <AwardIcon size={14} /> Certificates

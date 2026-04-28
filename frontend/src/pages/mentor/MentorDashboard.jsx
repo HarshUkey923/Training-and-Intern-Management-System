@@ -67,7 +67,7 @@ const MentorDashboard = () => {
             label="View Assigned Tasks"
             accent="#6366f1"
             t={t}
-            onClick={() => navigate("/show-tasks")}
+            onClick={() => navigate("/mentor/show-tasks")}
           />
         </div>
       </div>
@@ -174,7 +174,7 @@ const ProgramCard = ({ prog, t, isDark, navigate }) => {
                   {interns.map((intern, i) => (
                     <InternRow
                       key={intern._id} intern={intern} t={t} isLast={i === interns.length - 1}
-                      onAssign={() => navigate(`/assign-task/${prog._id}/${intern._id}`, { state: { internName: intern.name, programTitle: prog.title } })}
+                      onAssign={() => navigate(`/mentor/assign-task/${prog._id}/${intern._id}`, { state: { internName: intern.name, programTitle: prog.title } })}
                     />
                   ))}
                 </tbody>

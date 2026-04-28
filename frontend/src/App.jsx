@@ -30,17 +30,17 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         <Route path="/hr"                  element={<ProtectedRoute allowedRoles={["HR"]}><HRDashboard /></ProtectedRoute>} />
-        <Route path="/program"             element={<ProtectedRoute allowedRoles={["HR"]}><CreateProgram /></ProtectedRoute>} />
-        <Route path="/details/:id"         element={<ProtectedRoute allowedRoles={["HR"]}><Details /></ProtectedRoute>} />
-        <Route path="/assign-program/:id"  element={<ProtectedRoute allowedRoles={["HR"]}><AssignIntern /></ProtectedRoute>} />
-        <Route path="/add-intern"          element={<ProtectedRoute allowedRoles={["HR"]}><AddIntern /></ProtectedRoute>} />
-        <Route path="/add-mentor"          element={<ProtectedRoute allowedRoles={["HR"]}><AddMentor /></ProtectedRoute>} />
-        <Route path="/reports"             element={<ProtectedRoute allowedRoles={["HR"]}><Reports /></ProtectedRoute>} />
-        <Route path="/certificates"        element={<ProtectedRoute allowedRoles={["HR"]}><Certificates /></ProtectedRoute>} />
+        <Route path="/hr/program"             element={<ProtectedRoute allowedRoles={["HR"]}><CreateProgram /></ProtectedRoute>} />
+        <Route path="/hr/details/:id"         element={<ProtectedRoute allowedRoles={["HR"]}><Details /></ProtectedRoute>} />
+        <Route path="/hr/assign-program/:id"  element={<ProtectedRoute allowedRoles={["HR"]}><AssignIntern /></ProtectedRoute>} />
+        <Route path="/hr/add-intern"          element={<ProtectedRoute allowedRoles={["HR"]}><AddIntern /></ProtectedRoute>} />
+        <Route path="/hr/add-mentor"          element={<ProtectedRoute allowedRoles={["HR"]}><AddMentor /></ProtectedRoute>} />
+        <Route path="/hr/reports"             element={<ProtectedRoute allowedRoles={["HR"]}><Reports /></ProtectedRoute>} />
+        <Route path="/hr/certificates"        element={<ProtectedRoute allowedRoles={["HR"]}><Certificates /></ProtectedRoute>} />
 
         <Route path="/mentor"      element={<ProtectedRoute allowedRoles={["Mentor"]}><MentorDashboard /></ProtectedRoute>} />
-        <Route path="/show-tasks"  element={<ProtectedRoute allowedRoles={["Mentor"]}><DisplayTasks /></ProtectedRoute>} />
-        <Route path="/assign-task/:programId/:internId" element={<ProtectedRoute allowedRoles={["Mentor"]}><AssignTask /></ProtectedRoute>} />
+        <Route path="/mentor/show-tasks"  element={<ProtectedRoute allowedRoles={["Mentor"]}><DisplayTasks /></ProtectedRoute>} />
+        <Route path="/mentor/assign-task/:programId/:internId" element={<ProtectedRoute allowedRoles={["Mentor"]}><AssignTask /></ProtectedRoute>} />
 
         <Route path="/intern"             element={<ProtectedRoute allowedRoles={["Intern"]}><InternDashboard /></ProtectedRoute>} />
         <Route path="/intern/tasks"       element={<ProtectedRoute allowedRoles={["Intern"]}><MyTasks /></ProtectedRoute>} />

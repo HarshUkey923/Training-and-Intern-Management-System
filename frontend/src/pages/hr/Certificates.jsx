@@ -95,7 +95,7 @@ const Certificates = () => {
   }, [printTarget]);
 
   return (
-    <PageLayout backPath="/reports" backLabel="Back to Reports" maxWidth="980px">
+    <PageLayout backPath="/hr/reports" backLabel="Back to Reports" maxWidth="980px">
       <div style={{ marginBottom: "24px" }}>
         <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", color: "#f59e0b", marginBottom: "4px" }}>HR Portal</p>
         <h1 style={{ fontSize: "clamp(20px,4vw,26px)", fontWeight: 700, letterSpacing: "-0.02em", color: t.text, margin: 0 }}>Certificates</h1>
