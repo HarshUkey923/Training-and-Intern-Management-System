@@ -16,7 +16,7 @@ const createHR = async () => {
       process.exit();
     }
 
-    //----- enter password here -----
+    //----- *enter password here* -----//
     const hashed = await bcrypt.hash("enter_password", 10);
 
     const hr = await User.create({

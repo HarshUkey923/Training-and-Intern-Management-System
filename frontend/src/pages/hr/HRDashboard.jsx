@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import Navbar from "../../components/Navbar.jsx";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../../services/api.js";
 import { useTheme } from "../../context/ThemeContext.jsx";
 import toast from "react-hot-toast";
@@ -42,6 +42,8 @@ const HRDashboard = () => {
   const [loading, setLoading]       = useState(true);
   const [showInterns, setShowInterns] = useState(false);
   const [showMentors, setShowMentors] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = useRef(null);
   const { isDark } = useTheme();
   const t = isDark ? themes.dark : themes.light;
   const navigate = useNavigate();
@@ -124,14 +126,39 @@ const HRDashboard = () => {
                 Manage programs, interns, and mentors from one place.
               </p>
             </div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {quickActions.map((a) => (
-                <ActionButton key={a.label} label={a.label} accent={a.accent} t={t} onClick={() => navigate(a.path)} />
-              ))}
-              {/* All Interns button */}
-              <ActionButton label="All Interns" accent="#10b981" t={t} onClick={() => setShowInterns(true)} icon={<UsersIcon size={13} />} />
-              {/* All Mentors button */}
-              <ActionButton label="All Mentors" accent="#ec4899" t={t} onClick={() => setShowMentors(true)} icon={<UserIcon size={13} />} />
+            <div style={{ position: "relative" }}>
+              <button
+                ref={menuBtnRef}
+                onClick={() => setMenuOpen((o) => !o)}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "7px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 500, background: menuOpen ? "rgba(99,102,241,0.18)" : t.btnGhost, border: `1px solid ${menuOpen ? "rgba(99,102,241,0.5)" : t.btnGhostBorder}`, color: menuOpen ? "#818cf8" : t.btnGhostText, cursor: "pointer", transition: "all 0.15s", fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+              >
+                <LayoutGridIcon size={13} />
+                Actions
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transition: "transform 0.2s", transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+
+              {menuOpen && (() => {
+                const rect = menuBtnRef.current?.getBoundingClientRect();
+                const menuWidth = 192;
+                const top = rect ? rect.bottom + 6 : 60;
+                const rightEdge = rect ? rect.right : window.innerWidth - 16;
+                const left = Math.max(8, Math.min(rightEdge - menuWidth, window.innerWidth - menuWidth - 8));
+                return (
+                  <>
+                    <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+                    <div style={{ position: "fixed", top, left, zIndex: 20, width: `${menuWidth}px`, background: isDark ? "#161920" : "#ffffff", border: `1px solid ${t.border}`, borderRadius: "12px", boxShadow: "0 12px 32px rgba(0,0,0,0.18)", padding: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                      {quickActions.map((a) => (
+                        <DropdownItem key={a.label} label={a.label} accent={a.accent} t={t} onClick={() => { setMenuOpen(false); navigate(a.path); }} />
+                      ))}
+                      <div style={{ height: "1px", background: t.border, margin: "4px 0" }} />
+                      <DropdownItem label="All Interns" accent="#10b981" t={t} icon={<UsersIcon size={13} />} onClick={() => { setMenuOpen(false); setShowInterns(true); }} />
+                      <DropdownItem label="All Mentors" accent="#ec4899" t={t} icon={<UserIcon size={13} />} onClick={() => { setMenuOpen(false); setShowMentors(true); }} />
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -339,6 +366,20 @@ const PersonRow = ({ person, type, t, isLast, onDelete }) => {
 };
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
+const DropdownItem = ({ label, accent = "#6366f1", t, onClick, icon }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 500, background: hovered ? `${accent}18` : "transparent", color: hovered ? accent : t.btnGhostText, border: "none", cursor: "pointer", transition: "all 0.15s", width: "100%", textAlign: "left", fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+    >
+      {icon ?? <PlusIcon size={13} />}{label}
+    </button>
+  );
+};
+
 const ActionButton = ({ label, accent = "#6366f1", t, onClick, icon }) => {
   const [hovered, setHovered] = useState(false);
   return (
