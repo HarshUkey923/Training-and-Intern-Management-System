@@ -55,7 +55,7 @@ const AddHR = () => {
           <StyledInput
             label="Full Name"
             name="name"
-            placeholder="e.g. Priya Sharma"
+            placeholder="Enter Full Name"
             value={form.name}
             onChange={handleChange}
             required
@@ -64,7 +64,7 @@ const AddHR = () => {
             label="Email Address"
             name="email"
             type="email"
-            placeholder="priya@aetherbyte.com"
+            placeholder="Enter Email Address"
             value={form.email}
             onChange={handleChange}
             required
