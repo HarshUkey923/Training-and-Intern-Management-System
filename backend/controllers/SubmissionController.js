@@ -3,7 +3,7 @@ import Task from "../models/Task.js";
 import Intern from "../models/Intern.js";
 import Mentor from "../models/Mentor.js";
 import User from "../models/User.js";
-import { streamFile } from "../config/gridfs.js";
+import { streamFile } from "../config/GridFS.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInternFromUser = async (userId) => {
