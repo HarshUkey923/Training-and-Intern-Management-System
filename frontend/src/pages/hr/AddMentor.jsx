@@ -29,8 +29,8 @@ const AddMentor = () => {
       <FormCard title="Add Mentor" subtitle="Register a new mentor or trainer">
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
-            <StyledInput label="Full Name" name="name" placeholder="e.g. Arjun Mehta" value={form.name} onChange={handleChange} required />
-            <StyledInput label="Email Address" name="email" type="email" placeholder="arjun@aetherbyte.com" value={form.email} onChange={handleChange} required />
+            <StyledInput label="Full Name" name="name" placeholder="Enter Full Name" value={form.name} onChange={handleChange} required />
+            <StyledInput label="Email Address" name="email" type="email" placeholder="email@exampple.com" value={form.email} onChange={handleChange} required />
           </div>
 
           <StyledInput label="Password" name="password" type="password" placeholder="Set a secure password" value={form.password} onChange={handleChange} required />

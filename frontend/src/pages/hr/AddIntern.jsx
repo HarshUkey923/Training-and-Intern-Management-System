@@ -29,12 +29,12 @@ const AddIntern = () => {
       <FormCard title="Add Intern" subtitle="Create a new intern profile and credentials">
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
-            <StyledInput label="Full Name" name="name" placeholder="e.g. Riya Sharma" value={form.name} onChange={handleChange} required />
-            <StyledInput label="Gender" name="gender" placeholder="e.g. VNIT Nagpur" value={form.gender} onChange={handleChange} required />
+            <StyledInput label="Full Name" name="name" placeholder="Enter Full Name" value={form.name} onChange={handleChange} required />
+            <StyledInput label="Gender" name="gender" placeholder="Enter Gender" value={form.gender} onChange={handleChange} required />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
-            <StyledInput label="Email Address" name="email" type="email" placeholder="riya@example.com" value={form.email} onChange={handleChange} required />
+            <StyledInput label="Email Address" name="email" type="email" placeholder="email@example.com" value={form.email} onChange={handleChange} required />
             <StyledInput label="Password" name="password" type="password" placeholder="Set a secure password" value={form.password} onChange={handleChange} required />
           </div>
 
