@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, authorize } from "../middleware/AuthMiddleware.js";
-import { upload, saveToGridFS } from "../config/gridfs.js";
+import { upload, saveToGridFS } from "../config/GridFS.js";
 import {
   SubmitTask,
   GetMySubmissions,
