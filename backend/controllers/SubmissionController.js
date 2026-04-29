@@ -3,6 +3,7 @@ import Task from "../models/Task.js";
 import Intern from "../models/Intern.js";
 import Mentor from "../models/Mentor.js";
 import User from "../models/User.js";
+import { streamFile } from "../config/gridfs.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInternFromUser = async (userId) => {
@@ -29,40 +30,64 @@ const getMentorFromUser = async (userId) => {
   return mentor;
 };
 
-// Intern: Submit a task
+const errMsg = (e) => {
+  if (typeof e === "string") return e;
+  if (e instanceof Error) return e.message;
+  if (e?.message) return e.message;
+  try { return JSON.stringify(e); } catch { return "Unknown error"; }
+};
+
+// ─── Intern: Submit a task ────────────────────────────────────────────────────
 export const SubmitTask = async (req, res) => {
   try {
-    console.log("Body:", req.body);
-    console.log("File:", req.file);
-    console.log("User:", req.user);
     const { taskId, note } = req.body;
+    if (!taskId) return res.status(400).json({ message: "taskId is required." });
+
     const intern = await getInternFromUser(req.user.id);
 
-    // Verify task exists and belongs to this intern
     const task = await Task.findOne({ _id: taskId, internId: intern._id });
-    if (!task) {
-      return res.status(404).json({ message: "Task not found or not assigned to you." });
-    }
+    if (!task) return res.status(404).json({ message: "Task not found or not assigned to you." });
 
-    // Prevent duplicate submissions
     const existing = await Submission.findOne({ taskId, internId: intern._id });
-    if (existing) {
-      return res.status(400).json({ message: "You have already submitted this task." });
-    }
+    if (existing) return res.status(400).json({ message: "You have already submitted this task." });
+
+    // req.file is populated by saveToGridFS middleware
+    const fileId     = req.file ? req.file.id.toString()   : null;
+    const fileName   = req.file ? req.file.filename         : null;
+    const fileBucket = req.file ? req.file.bucketName       : null;
+    // original name for display — stored in GridFS metadata and passed through
+    const fileOriginalName = req.file ? req.file.originalname : null;
 
     const submission = await Submission.create({
       taskId,
       internId: intern._id,
-      note,
-      fileUrl: req.file ? req.file.path : null,
+      note: note || "",
+      fileId,
+      fileName,
+      fileBucket,
+      fileOriginalName,
+      // fileUrl is the API route to stream the file — works on any device/server
+      fileUrl: fileId
+        ? `/api/submissions/file/${fileId}?bucket=${fileBucket}`
+        : null,
     });
 
     await Task.findByIdAndUpdate(taskId, { status: "Submitted" });
-
     res.status(201).json({ message: "Task submitted successfully.", submission });
   } catch (error) {
-    console.error("SubmitTask error:", error);
-    res.status(500).json({ message: error.message });
+    console.error("[SubmitTask] ERROR:", error);
+    res.status(500).json({ message: errMsg(error) });
+  }
+};
+
+// ─── Stream file from GridFS ──────────────────────────────────────────────────
+export const ServeFile = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const bucket = req.query.bucket || "submissions";
+    await streamFile(fileId, bucket, res);
+  } catch (error) {
+    res.status(500).json({ message: errMsg(error) });
   }
 };
 
@@ -70,14 +95,12 @@ export const SubmitTask = async (req, res) => {
 export const GetMySubmissions = async (req, res) => {
   try {
     const intern = await getInternFromUser(req.user.id);
-
     const submissions = await Submission.find({ internId: intern._id })
       .populate("taskId", "title description status dueDate")
       .sort({ createdAt: -1 });
-
     res.status(200).json(submissions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: errMsg(error) });
   }
 };
 
@@ -85,18 +108,15 @@ export const GetMySubmissions = async (req, res) => {
 export const GetSubmissionsForMentor = async (req, res) => {
   try {
     const mentor = await getMentorFromUser(req.user.id);
-
     const mentorTasks = await Task.find({ mentorId: mentor._id }).select("_id");
     const taskIds = mentorTasks.map((t) => t._id);
-
     const submissions = await Submission.find({ taskId: { $in: taskIds } })
       .populate("taskId", "title description status")
       .populate("internId", "name email")
       .sort({ createdAt: -1 });
-
     res.status(200).json(submissions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: errMsg(error) });
   }
 };
 
@@ -108,14 +128,10 @@ export const ReviewSubmission = async (req, res) => {
     const mentor = await getMentorFromUser(req.user.id);
 
     const submission = await Submission.findById(submissionId).populate("taskId");
-    if (!submission) {
-      return res.status(404).json({ message: "Submission not found." });
-    }
+    if (!submission) return res.status(404).json({ message: "Submission not found." });
 
-    // Verify this task was assigned by this mentor
-    if (submission.taskId.mentorId.toString() !== mentor._id.toString()) {
+    if (submission.taskId.mentorId.toString() !== mentor._id.toString())
       return res.status(403).json({ message: "Not authorized to review this submission." });
-    }
 
     submission.feedback = feedback;
     submission.rating   = rating;
@@ -123,10 +139,9 @@ export const ReviewSubmission = async (req, res) => {
     await submission.save();
 
     await Task.findByIdAndUpdate(submission.taskId._id, { status: "Reviewed" });
-
     res.status(200).json({ message: "Reviewed successfully.", submission });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: errMsg(error) });
   }
 };
 
@@ -137,9 +152,8 @@ export const GetAllSubmissions = async (req, res) => {
       .populate("taskId", "title description status")
       .populate("internId", "name email")
       .sort({ createdAt: -1 });
-
     res.status(200).json(submissions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: errMsg(error) });
   }
 };

@@ -45,7 +45,7 @@ const MentorDashboard = () => {
     { label: "Assigned Programs", value: programs.length, icon: LayoutGridIcon,    accent: "#6366f1", bg: "rgba(99,102,241,0.1)" },
     { label: "Total Interns",     value: totalInterns,     icon: UsersIcon,         accent: "#10b981", bg: "rgba(16,185,129,0.1)" },
     { label: "Active Tasks",      value: "—",              icon: ClipboardListIcon, accent: "#f59e0b", bg: "rgba(245,158,11,0.1)",
-      onClick: () => navigate("/show-tasks") },
+      onClick: () => navigate("/mentor/show-tasks") },
   ];
 
   return (

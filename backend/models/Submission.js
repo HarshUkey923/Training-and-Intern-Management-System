@@ -35,6 +35,7 @@ const SubmissionSchema = new mongoose.Schema(
       enum: ["Submitted", "Reviewed"],
       default: "Submitted",
     },
+    fileOriginalName: { type: String, default: null },
   },
   { timestamps: true }
 );

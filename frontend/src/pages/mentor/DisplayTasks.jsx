@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../../services/api.js";
 import { useTheme } from "../../context/ThemeContext.jsx";
 import PageLayout from "../../components/PageLayout.jsx";
@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import {
   ClipboardListIcon, UserIcon, CalendarIcon,
   ClockIcon, CheckCircleIcon, CircleIcon, SearchIcon,
-  StarIcon, XIcon, PaperclipIcon, DownloadIcon, FileTextIcon,
+  StarIcon, XIcon, DownloadIcon, FileTextIcon,
 } from "lucide-react";
 
 const themes = {
@@ -16,7 +16,7 @@ const themes = {
     textFaint: "#374151", rowHover: "rgba(255,255,255,0.03)",
     theadBg: "rgba(255,255,255,0.03)", skeletonBg: "rgba(255,255,255,0.08)",
     inputBg: "rgba(255,255,255,0.04)", inputBorder: "rgba(255,255,255,0.1)",
-    modalBg: "#161920", overlayBg: "rgba(0,0,0,0.65)",
+    modalBg: "#161920", overlayBg: "rgba(0,0,0,0.75)",
     expandBg: "rgba(255,255,255,0.02)", fileBg: "rgba(99,102,241,0.08)",
   },
   light: {
@@ -25,7 +25,7 @@ const themes = {
     textFaint: "#d1d5db", rowHover: "rgba(0,0,0,0.02)",
     theadBg: "rgba(0,0,0,0.03)", skeletonBg: "rgba(0,0,0,0.07)",
     inputBg: "rgba(255,255,255,0.9)", inputBorder: "rgba(0,0,0,0.12)",
-    modalBg: "#ffffff", overlayBg: "rgba(0,0,0,0.4)",
+    modalBg: "#ffffff", overlayBg: "rgba(0,0,0,0.55)",
     expandBg: "rgba(0,0,0,0.02)", fileBg: "rgba(99,102,241,0.06)",
   },
 };
@@ -36,31 +36,174 @@ const STATUS_CONFIG = {
   Reviewed:  { label: "Reviewed",  color: "#10b981", bg: "rgba(16,185,129,0.1)",  icon: CheckCircleIcon },
 };
 
-// ─── File URL helpers — work with both Cloudinary and local paths ─────────────
-// Cloudinary returns a full https:// URL → use as-is
-// Local dev stores relative paths like "uploads/file.pdf" → prepend localhost
-const fileUrl = (filePath) => {
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.MODE === "development" ? "http://localhost:5001" : "");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const resolveFileUrl = (filePath) => {
   if (!filePath) return null;
   if (filePath.startsWith("http://") || filePath.startsWith("https://")) return filePath;
-  const base = import.meta.env.MODE === "development" ? "http://localhost:5001" : "";
-  return `${base}/${filePath.replace(/\\/g, "/")}`;
+  const clean = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  return `${API_BASE}/${clean}`;
 };
 
-const fileName = (filePath) => {
+const resolveFileName = (submission) => {
+  // 1. Best: the original filename exactly as the user uploaded it
+  if (submission?.fileOriginalName)
+    return decodeURIComponent(submission.fileOriginalName);
+  // 2. Good: GridFS stored name — strip the timestamp prefix (e.g. "1718000000000-report.pdf" → "report.pdf")
+  if (submission?.fileName)
+    return decodeURIComponent(submission.fileName.replace(/^\d+-/, ""));
+  // 3. Fallback: derive from fileUrl — but fileUrl ends with the ObjectId, so this
+  //    will only give a useful result for legacy Cloudinary / local-upload URLs
+  const filePath = submission?.fileUrl;
   if (!filePath) return "Attachment";
-  const parts = filePath.replace(/\\/g, "/").split("/");
-  const last = parts[parts.length - 1];
-  // Strip Cloudinary version prefix (v1234567890_name) if present
-  return decodeURIComponent(last.replace(/^v\d+_/, ""));
+  const last = filePath.replace(/\\/g, "/").split("/").pop().split("?")[0];
+  const cleaned = decodeURIComponent(last.replace(/^v\d+_/, "").replace(/^\d+-/, ""));
+  // If it looks like a 24-char hex ObjectId, we can't derive a useful name — just say "Attachment"
+  return /^[a-f0-9]{24}$/i.test(cleaned) ? "Attachment" : cleaned;
 };
 
+// Returns "pdf" | "image" | null
+const getPreviewKind = (mimeType = "", fileName = "") => {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType === "application/pdf") return "pdf";
+  const ext = fileName.split(".").pop().toLowerCase();
+  if (ext === "pdf") return "pdf";
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image";
+  return null;
+};
+
+// ─── File Viewer Modal (images only) ─────────────────────────────────────────
+const FileViewerModal = ({ blobUrl, fileName, onClose }) => {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.88)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+    >
+      {/* Toolbar */}
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: "1000px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", boxSizing: "border-box" }}>
+        <span style={{ fontSize: "13px", fontWeight: 500, color: "#e5e7eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "80%" }}>{fileName}</span>
+        <button onClick={onClose} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "34px", height: "34px", borderRadius: "8px", background: "rgba(255,255,255,0.1)", color: "#e5e7eb", border: "1px solid rgba(255,255,255,0.18)", cursor: "pointer" }} title="Close (Esc)">
+          <XIcon size={15} />
+        </button>
+      </div>
+      {/* Image */}
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: "1000px", maxHeight: "calc(100vh - 80px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px 16px" }}>
+        <img src={blobUrl} alt={fileName} style={{ maxWidth: "100%", maxHeight: "calc(100vh - 100px)", objectFit: "contain", borderRadius: "8px" }} />
+      </div>
+    </div>
+  );
+};
+
+// ─── File pill ────────────────────────────────────────────────────────────────
+const MIME_TO_EXT = {
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/zip": ".zip",
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+};
+
+const FilePill = ({ submission, path: filePath, t, small = false }) => {
+  const [loading, setLoading] = useState(false);
+  const [viewer, setViewer]   = useState(null); // { blobUrl, fileName } — images only
+
+  const url  = submission ? resolveFileUrl(submission.fileUrl) : resolveFileUrl(filePath);
+  const name = submission ? resolveFileName(submission)        : resolveFileName({ fileUrl: filePath });
+
+  if (!url) return null;
+
+  const handleClick = async (e) => {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      const response = await api.get(url, { responseType: "blob", baseURL: "" });
+      const rawMime  = response.headers["content-type"] || "application/octet-stream";
+      const mimeType = rawMime.split(";")[0].trim();
+      const blob     = new Blob([response.data], { type: mimeType });
+      const blobUrl  = URL.createObjectURL(blob);
+
+      const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
+      const fileExt    = name.split(".").pop().toLowerCase();
+      const isImage    = mimeType.startsWith("image/") || IMAGE_EXTS.includes(fileExt);
+
+      if (isImage) {
+        // Show images in the modal
+        setViewer({ blobUrl, fileName: name });
+      } else {
+        // PDF, DOCX, ZIP — just download with correct extension
+        const expectedExt = MIME_TO_EXT[mimeType] || "";
+        const downloadName = expectedExt && !name.toLowerCase().endsWith(expectedExt)
+          ? `${name}${expectedExt}`
+          : name;
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = downloadName;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5_000);
+      }
+    } catch (err) {
+      toast.error("Could not load file. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = useCallback(() => {
+    if (viewer?.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer(null);
+  }, [viewer]);
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "5px",
+          padding: small ? "3px 10px" : "6px 12px",
+          borderRadius: "8px", fontSize: small ? "11px" : "12px", fontWeight: 500,
+          background: t.fileBg, color: loading ? t.textMuted : "#818cf8",
+          border: "1px solid rgba(99,102,241,0.25)",
+          cursor: loading ? "not-allowed" : "pointer",
+          maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+        title={name}
+      >
+        {loading ? (
+          <><span style={{ width: "10px", height: "10px", border: "2px solid rgba(129,140,248,0.3)", borderTopColor: "#818cf8", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block", flexShrink: 0 }} /> Loading…</>
+        ) : (
+          <><DownloadIcon size={small ? 11 : 13} /> {name}</>
+        )}
+      </button>
+
+      {viewer && <FileViewerModal blobUrl={viewer.blobUrl} fileName={viewer.fileName} onClose={handleClose} />}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </>
+  );
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
 const DisplayTasks = () => {
-  const [tasks, setTasks]           = useState([]);
-  const [submissions, setSubmissions] = useState([]); // all submissions indexed by taskId
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
-  const [filter, setFilter]         = useState("All");
-  const [reviewTask, setReviewTask] = useState(null);
+  const [tasks, setTasks]            = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading]        = useState(true);
+  const [search, setSearch]          = useState("");
+  const [filter, setFilter]          = useState("All");
+  const [reviewTask, setReviewTask]  = useState(null);
   const { isDark } = useTheme();
   const t = isDark ? themes.dark : themes.light;
 
@@ -69,7 +212,7 @@ const DisplayTasks = () => {
     try {
       const [tasksRes, subsRes] = await Promise.all([
         api.get("/tasks/mentor"),
-        api.get("/submissions/mentor"),  // mentor's submissions
+        api.get("/submissions/mentor"),
       ]);
       setTasks(tasksRes.data || []);
       setSubmissions(subsRes.data || []);
@@ -82,7 +225,6 @@ const DisplayTasks = () => {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // Build a map of taskId → submission for O(1) lookup
   const submissionByTask = submissions.reduce((acc, sub) => {
     const id = sub.taskId?._id || sub.taskId;
     if (id) acc[id] = sub;
@@ -110,7 +252,6 @@ const DisplayTasks = () => {
 
   return (
     <PageLayout backPath="/mentor" backLabel="Back to Dashboard" maxWidth="1040px">
-      {/* Header */}
       <div style={{ marginBottom: "24px" }}>
         <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", color: "#6366f1", marginBottom: "4px" }}>Mentor</p>
         <h1 style={{ fontSize: "clamp(20px,4vw,26px)", fontWeight: 700, letterSpacing: "-0.02em", color: t.text, margin: 0 }}>Assigned Tasks</h1>
@@ -119,7 +260,6 @@ const DisplayTasks = () => {
         </p>
       </div>
 
-      {/* Filter tabs + search */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px", alignItems: "center" }}>
         {filterTabs.map((tab) => {
           const cfg = STATUS_CONFIG[tab];
@@ -150,7 +290,6 @@ const DisplayTasks = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "14px", overflow: "hidden", boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.2)" : "0 4px 24px rgba(0,0,0,0.06)" }}>
         {loading ? (
           <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -185,7 +324,6 @@ const DisplayTasks = () => {
         )}
       </div>
 
-      {/* Review modal */}
       {reviewTask && (
         <ReviewModal
           task={reviewTask.task}
@@ -198,33 +336,6 @@ const DisplayTasks = () => {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
     </PageLayout>
-  );
-};
-
-// ─── File pill component ──────────────────────────────────────────────────────
-const FilePill = ({ path: filePath, t, small = false }) => {
-  if (!filePath) return null;
-  const url  = fileUrl(filePath);
-  const name = fileName(filePath);
-  return (
-    <a
-      href={url} target="_blank" rel="noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: "5px",
-        padding: small ? "3px 10px" : "6px 12px",
-        borderRadius: "8px", fontSize: small ? "11px" : "12px", fontWeight: 500,
-        background: t.fileBg, color: "#818cf8",
-        border: "1px solid rgba(99,102,241,0.25)",
-        textDecoration: "none", transition: "background 0.15s",
-        maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}
-      title={name}
-    >
-      <PaperclipIcon size={small ? 11 : 13} />
-      {name}
-      <DownloadIcon size={small ? 10 : 12} style={{ flexShrink: 0 }} />
-    </a>
   );
 };
 
@@ -280,10 +391,7 @@ const TaskRow = ({ task, submission, t, isDark, isLast, onReview }) => {
         </td>
         <td style={{ padding: "14px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
           {task.status === "Submitted" && (
-            <button
-              onClick={onReview}
-              style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "5px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "#34d399", border: "1px solid rgba(16,185,129,0.25)", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}
-            >
+            <button onClick={onReview} style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "5px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 600, background: "rgba(16,185,129,0.12)", color: "#34d399", border: "1px solid rgba(16,185,129,0.25)", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>
               <StarIcon size={11} /> Review
             </button>
           )}
@@ -297,19 +405,15 @@ const TaskRow = ({ task, submission, t, isDark, isLast, onReview }) => {
         </td>
       </tr>
 
-      {/* Expanded detail row */}
       {expanded && (
         <tr style={{ borderBottom: isLast ? "none" : `1px solid ${t.border}` }}>
           <td colSpan={6} style={{ padding: "0 16px 16px 16px" }}>
             <div style={{ background: t.expandBg, border: `1px solid ${t.border}`, borderRadius: "10px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px" }}>
-
-              {/* Task description */}
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 600, color: t.textMuted, marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Task Description</p>
                 <p style={{ fontSize: "13px", color: t.text, lineHeight: 1.6, margin: 0 }}>{task.description || "No description."}</p>
               </div>
 
-              {/* Task reference file (set by mentor) */}
               {task.fileUrl && (
                 <div>
                   <p style={{ fontSize: "11px", fontWeight: 600, color: t.textMuted, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Reference File (by you)</p>
@@ -317,13 +421,11 @@ const TaskRow = ({ task, submission, t, isDark, isLast, onReview }) => {
                 </div>
               )}
 
-              {/* Submission details */}
               {submission ? (
                 <div style={{ paddingTop: "12px", borderTop: `1px solid ${t.border}` }}>
                   <p style={{ fontSize: "11px", fontWeight: 600, color: "#6366f1", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "5px" }}>
                     <FileTextIcon size={12} /> Intern Submission
                   </p>
-
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-start" }}>
                     <div style={{ flex: 1, minWidth: "200px" }}>
                       {submission.note ? (
@@ -335,22 +437,14 @@ const TaskRow = ({ task, submission, t, isDark, isLast, onReview }) => {
                         <p style={{ fontSize: "13px", color: t.textMuted, fontStyle: "italic" }}>No note added.</p>
                       )}
                     </div>
-
-                    {/* Submitted file */}
-                    {submission.fileUrl ? (
-                      <div>
-                        <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px", fontWeight: 500 }}>Submitted File</p>
-                        <FilePill path={submission.fileUrl} t={t} />
-                      </div>
-                    ) : (
-                      <div>
-                        <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "4px", fontWeight: 500 }}>Submitted File</p>
-                        <span style={{ fontSize: "12px", color: t.textFaint }}>No file attached</span>
-                      </div>
-                    )}
+                    <div>
+                      <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px", fontWeight: 500 }}>Submitted File</p>
+                      {submission.fileUrl
+                        ? <FilePill submission={submission} t={t} />
+                        : <span style={{ fontSize: "12px", color: t.textFaint }}>No file attached</span>
+                      }
+                    </div>
                   </div>
-
-                  {/* Feedback if reviewed */}
                   {submission.feedback && (
                     <div style={{ marginTop: "12px", padding: "10px 14px", borderRadius: "8px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
                       <p style={{ fontSize: "11px", fontWeight: 600, color: "#34d399", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Your Feedback</p>
@@ -382,7 +476,6 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
     if (!rating)          { toast.error("Please select a rating"); return; }
     if (!feedback.trim()) { toast.error("Please enter feedback");  return; }
     if (!submission)      { toast.error("No submission found for this task"); return; }
-
     setLoading(true);
     try {
       await api.put(`/submissions/${submission._id}/review`, { feedback, rating });
@@ -401,7 +494,6 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: t.overlayBg, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: t.modalBg, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "520px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", gap: "20px" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
             <p style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#10b981", margin: "0 0 4px" }}>Review Task</p>
@@ -417,29 +509,23 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
           </button>
         </div>
 
-        {/* Intern's submitted file — prominently shown */}
         {submission ? (
           <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", border: `1px solid ${t.border}`, borderRadius: "10px", padding: "14px 16px" }}>
             <p style={{ fontSize: "11px", fontWeight: 600, color: t.textMuted, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "5px" }}>
               <FileTextIcon size={12} /> Intern's Submission
             </p>
-
-            {/* Note */}
             {submission.note && (
               <div style={{ marginBottom: "10px" }}>
                 <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "3px" }}>Note</p>
                 <p style={{ fontSize: "13px", color: t.text, lineHeight: 1.5, margin: 0 }}>{submission.note}</p>
               </div>
             )}
-
-            {/* Submitted file */}
             <div>
               <p style={{ fontSize: "11px", color: t.textMuted, marginBottom: "6px" }}>Attached File</p>
-              {submission.fileUrl ? (
-                <FilePill path={submission.fileUrl} t={t} />
-              ) : (
-                <span style={{ fontSize: "12px", color: t.textFaint, fontStyle: "italic" }}>No file attached by intern</span>
-              )}
+              {submission.fileUrl
+                ? <FilePill submission={submission} t={t} />
+                : <span style={{ fontSize: "12px", color: t.textFaint, fontStyle: "italic" }}>No file attached by intern</span>
+              }
             </div>
           </div>
         ) : (
@@ -448,7 +534,6 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
           </div>
         )}
 
-        {/* Star rating */}
         <div>
           <label style={{ fontSize: "12px", fontWeight: 500, color: t.textMuted, display: "block", marginBottom: "10px" }}>
             Rating <span style={{ color: "#f87171" }}>*</span>
@@ -460,13 +545,10 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
                 <StarIcon size={28} style={{ color: (hoverRating || rating) >= star ? "#f59e0b" : t.border, fill: (hoverRating || rating) >= star ? "#f59e0b" : "none", transition: "all 0.1s" }} />
               </button>
             ))}
-            {ratingLabel && (
-              <span style={{ fontSize: "13px", color: t.textMuted, marginLeft: "6px" }}>{ratingLabel}</span>
-            )}
+            {ratingLabel && <span style={{ fontSize: "13px", color: t.textMuted, marginLeft: "6px" }}>{ratingLabel}</span>}
           </div>
         </div>
 
-        {/* Feedback */}
         <div>
           <label style={{ fontSize: "12px", fontWeight: 500, color: t.textMuted, display: "block", marginBottom: "6px" }}>
             Feedback <span style={{ color: "#f87171" }}>*</span>
@@ -479,7 +561,6 @@ const ReviewModal = ({ task, submission, t, isDark, onClose, onSuccess }) => {
           />
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: "10px" }}>
           <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: "10px", fontSize: "13px", fontWeight: 500, background: t.surface, color: t.textMuted, border: `1px solid ${t.border}`, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
             Cancel
