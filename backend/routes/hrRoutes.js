@@ -20,7 +20,7 @@ router.delete("/delete-program/:id", protect(["HR"]), authorize("HR"), DeletePro
 // ─── Interns ──────────────────────────────────────────────────────────────────
 router.get("/intern",                protect(["HR"]), authorize("HR"), GetInterns);
 router.post("/intern",               protect(["HR"]), authorize("HR"), AddIntern);
-router.delete("/intern/:id",         protect(["HR"]), authorize("HR"), DeleteIntern);
+router.delete("/delete-intern/:id",         protect(["HR"]), authorize("HR"), DeleteIntern);
 router.get("/get-interns/:id",       protect(["HR"]), authorize("HR"), GetInternByProgram);
 router.put("/assign-program",        protect(["HR"]), authorize("HR"), AssignInternToProgram);
 router.put("/remove-intern",         protect(["HR"]), authorize("HR"), RemoveInternFromProgram);
@@ -28,7 +28,7 @@ router.put("/remove-intern",         protect(["HR"]), authorize("HR"), RemoveInt
 // ─── Mentors ──────────────────────────────────────────────────────────────────
 router.get("/mentor",                protect(["HR"]), authorize("HR"), GetMentors);
 router.post("/add-mentor",           protect(["HR"]), authorize("HR"), AddMentor);
-router.delete("/mentor/:id",         protect(["HR"]), authorize("HR"), DeleteMentor);
+router.delete("/delete-mentor/:id",         protect(["HR"]), authorize("HR"), DeleteMentor);
 router.get("/get-mentor/:id",        protect(["HR"]), authorize("HR"), GetMentorById);
 router.put("/assign-mentor",         protect(["HR"]), authorize("HR"), AssignMentor);
 router.put("/remove-mentor",         protect(["HR"]), authorize("HR"), RemoveMentorFromProgram);
