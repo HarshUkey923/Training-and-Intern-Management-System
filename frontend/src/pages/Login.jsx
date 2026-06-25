@@ -77,7 +77,7 @@ const subText = isDark ? "#9ca3af" : "#6b7280";
 
               <StyledInput
                 type="email"
-                placeholder="Email"
+                placeholder="For test use: hr@test.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -85,7 +85,7 @@ const subText = isDark ? "#9ca3af" : "#6b7280";
 
               <StyledInput
                 type="password"
-                placeholder="Password"
+                placeholder="password: test"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
